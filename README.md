@@ -1,2 +1,2 @@
 # A-eye
-tensorflow project
+diabetic retinopathy keras project
