@@ -136,7 +136,7 @@ class Medium():
             Returns:   None
         """
         model = self.model2
-        
+        model.add(Dense(1024, init='orthogonal', W_regularizer=l2(0.0002)))
         model.add(MaxPooling1D(pool_length=2, border_mode='same'))  #possible breaking point
 
 
@@ -164,7 +164,7 @@ class Medium():
         model.add(Merge([model1, model2], mode='concat', concat_axis = 1))
         model.add(Reshape((batches // 2, -1)))  #possible breaking point
         model.add(Dropout(0.5))
-
+        
 
 
         model.add(Dense(5, activation='softmax'))
