@@ -39,7 +39,7 @@ def nothing(x):
 
 def backend_reshape(x):
     return K.reshape(x, (x[0] //2, 1028))
-model.add(Lambda(backend_reshape, output_shape=(NUM_LSTM_UNITS,)))
+
 
 
 n = 32
