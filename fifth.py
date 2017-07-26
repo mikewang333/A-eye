@@ -14,6 +14,7 @@ from keras.layers.core import Flatten, Dense, Dropout, Lambda, MaxoutDense
 from keras.layers.convolutional import Convolution2D, MaxPooling2D, ZeroPadding2D
 from keras.layers.pooling import GlobalAveragePooling2D
 from keras.layers.advanced_activations import LeakyReLU
+from keras.layers import Input, Merge
 from keras.regularizers import l2, activity_l2
 from keras import initializations
 from keras.optimizers import SGD, RMSprop, Adam
@@ -36,6 +37,7 @@ def vgg_preprocess(x):
 n = 32
 momentum = 0.9
 leakiness = 0.5
+batch_size = 64   #this is a constant for now (???)
 class Medium():
     """
         The Medium Imagenet model
@@ -84,9 +86,9 @@ class Medium():
 
 
 
-    def ConvBlock(self):
-        model = self.model
+    def ConvBlock(self,model):
         #of filters = units on report    kernel_size = filter on report
+        model = self.model2
         model.add(Convolution2D(n, 7, 7, subsample=(2,2), init='orthogonal', border_mode='same', W_regularizer=l2(0.0002)))
         model.add(LeakyReLU(alpha=leakiness))   # add an advanced activation  https://github.com/fchollet/keras/issues/117
         model.add(MaxPooling2D(pool_size=(3, 3), strides=(2, 2)))
@@ -133,10 +135,11 @@ class Medium():
             Args:   None
             Returns:   None
         """
-        model = self.model
+        model = self.model2
         
-        model.add(Dense(1024, init='orthogonal', W_regularizer=l2(0.0002)))
-        model.add(MaxoutDense(512, init='orthogonal', W_regularizer=l2(0.0002)))
+        model.add(MaxPooling1D(pool_length=2, border_mode='same'))  #possible breaking point
+
+
 
 
     def create(self):
@@ -146,21 +149,28 @@ class Medium():
             Args:   None
             Returns:   None
         """
+        l_in_imgdim = Input(shape=(batch_size,2))
+        model1 = self.model1 = Sequential()
+        model2 = self.model2 = Sequential()
         model = self.model = Sequential()
 
         #change shape
-        model.add(Lambda(vgg_preprocess, input_shape=(3,512,512), output_shape=(3,512,512)))
-
+        model1.add(l_in_imgdim)
+        model2.add(Lambda(vgg_preprocess, input_shape=(3,512,512), output_shape=(3,512,512)))
 
         self.ConvBlock()
+        model2.add(Flatten())
+        self.FCBlock()
+        model.add(Merge([model1, model2], mode='concat', concat_axis = 1))
+        model.add(Reshape((batches // 2, -1)))  #possible breaking point
+        model.add(Dropout(0.5))
 
-        model.add(Flatten())
-        self.FCBlock1()
-        self.FCBlock2()
-        model.add(Dense(1000, activation='softmax'))
 
 
-    def get_batches(self, path, gen=image.ImageDataGenerator(), shuffle=True, batch_size=8, class_mode='categorical'):
+        model.add(Dense(5, activation='softmax'))
+
+
+    def get_batches(self, path, gen=image.ImageDataGenerator(), shuffle=True, batch_size=64, class_mode='categorical'):
         """
             Takes the path to a directory, and generates batches of augmented/normalized data. Yields batches indefinitely, in an infinite loop.
 
@@ -183,9 +193,9 @@ class Medium():
         """
         
         model = self.model
-        model.pop()
-        for layer in model.layers: layer.trainable=False
-        model.add(Dense(num, activation='softmax'))
+        #model.pop()
+        #for layer in model.layers: layer.trainable=False
+        #model.add(Dense(num, activation='softmax'))
         self.compile()
 
     def finetune(self, batches):
@@ -240,7 +250,7 @@ class Medium():
 
         
         
-    def test(self, path, batch_size=8):
+    def test(self, path, batch_size=64):
         """
             Predicts the classes using the trained model on data yielded batch-by-batch.
 
