@@ -14,7 +14,7 @@ from keras.layers.core import Flatten, Dense, Dropout, Lambda, MaxoutDense
 from keras.layers.convolutional import Convolution2D, MaxPooling2D, MaxPooling1D, ZeroPadding2D
 from keras.layers.pooling import GlobalAveragePooling2D
 from keras.layers.advanced_activations import LeakyReLU
-from keras.layers import Input, Merge
+from keras.layers import Input, Merge, Reshape
 from keras.regularizers import l2, activity_l2
 from keras import initializations
 from keras.optimizers import SGD, RMSprop, Adam
@@ -36,6 +36,10 @@ def vgg_preprocess(x):
 
 def nothing(x):
     return x
+
+def backend_reshape(x):
+    return K.reshape(x, (x[0] //2, 1028))
+model.add(Lambda(backend_reshape, output_shape=(NUM_LSTM_UNITS,)))
 
 
 n = 32
@@ -93,42 +97,44 @@ class Medium():
     def ConvBlock(self):
         #of filters = units on report    kernel_size = filter on report
         model = self.model2
-        model.add(Convolution2D(n, 7, 7, subsample=(2,2), init='orthogonal', border_mode='same', W_regularizer=l2(0.0002)))
+        
+        model.add(Convolution2D(n, 7, 7, subsample=(2,2), init='orthogonal', border_mode='same', W_regularizer=l2(0.0002), input_shape=(3,512,512)))
         model.add(LeakyReLU(alpha=leakiness))   # add an advanced activation  https://github.com/fchollet/keras/issues/117
-        model.add(MaxPooling2D(pool_size=(3, 3), strides=(2, 2)))
+        model.add(MaxPooling2D(pool_size=(3, 3), strides=(2, 2), input_shape=(32,256,256)))
 
-        model.add(Convolution2D(n, 3, 3, init='orthogonal', border_mode='same', W_regularizer=l2(0.0002)))
+        model.add(Convolution2D(n, 3, 3, init='orthogonal', border_mode='same', W_regularizer=l2(0.0002), input_shape=(32,127,127)))
         model.add(LeakyReLU(alpha=leakiness))
-        model.add(Convolution2D(n, 3, 3, init='orthogonal', border_mode='same', W_regularizer=l2(0.0002)))
+        model.add(Convolution2D(n, 3, 3, init='orthogonal', border_mode='same', W_regularizer=l2(0.0002), input_shape=(32,127,127)))
         model.add(LeakyReLU(alpha=leakiness))
-        model.add(MaxPooling2D(pool_size=(3, 3), strides=(2, 2)))
+        model.add(MaxPooling2D(pool_size=(3, 3), strides=(2, 2), input_shape=(32,127,127)))
 
-        model.add(Convolution2D(2 * n, 3, 3, init='orthogonal', border_mode='same', W_regularizer=l2(0.0002)))
+        model.add(Convolution2D(2 * n, 3, 3, init='orthogonal', border_mode='same', W_regularizer=l2(0.0002), input_shape=(32,63,63)))
         model.add(LeakyReLU(alpha=leakiness))
-        model.add(Convolution2D(2 * n, 3, 3, init='orthogonal', border_mode='same', W_regularizer=l2(0.0002)))
+        model.add(Convolution2D(2 * n, 3, 3, init='orthogonal', border_mode='same', W_regularizer=l2(0.0002), input_shape=(64,63,63)))
         model.add(LeakyReLU(alpha=leakiness))
-        model.add(MaxPooling2D(pool_size=(3, 3), strides=(2, 2)))
+        model.add(MaxPooling2D(pool_size=(3, 3), strides=(2, 2), input_shape=(64,63,63)))
 
-        model.add(Convolution2D(4 * n, 3, 3, init='orthogonal', border_mode='same', W_regularizer=l2(0.0002)))
+        model.add(Convolution2D(4 * n, 3, 3, init='orthogonal', border_mode='same', W_regularizer=l2(0.0002), input_shape=(64,31,31)))
         model.add(LeakyReLU(alpha=leakiness))
-        model.add(Convolution2D(4 * n, 3, 3, init='orthogonal', border_mode='same', W_regularizer=l2(0.0002)))
+        model.add(Convolution2D(4 * n, 3, 3, init='orthogonal', border_mode='same', W_regularizer=l2(0.0002), input_shape=(128,31,31)))
         model.add(LeakyReLU(alpha=leakiness))
-        model.add(Convolution2D(4 * n, 3, 3, init='orthogonal', border_mode='same', W_regularizer=l2(0.0002)))
+        model.add(Convolution2D(4 * n, 3, 3, init='orthogonal', border_mode='same', W_regularizer=l2(0.0002), input_shape=(128,31,31)))
         model.add(LeakyReLU(alpha=leakiness))
-        model.add(Convolution2D(4 * n, 3, 3, init='orthogonal', border_mode='same', W_regularizer=l2(0.0002)))
+        model.add(Convolution2D(4 * n, 3, 3, init='orthogonal', border_mode='same', W_regularizer=l2(0.0002), input_shape=(128,31,31)))
         model.add(LeakyReLU(alpha=leakiness))
-        model.add(MaxPooling2D(pool_size=(3, 3), strides=(2, 2)))
+        model.add(MaxPooling2D(pool_size=(3, 3), strides=(2, 2), input_shape=(128,31,31)))
 
-        model.add(Convolution2D(8 * n, 3, 3, init='orthogonal', border_mode='same', W_regularizer=l2(0.0002)))
+        model.add(Convolution2D(8 * n, 3, 3, init='orthogonal', border_mode='same', W_regularizer=l2(0.0002), input_shape=(128,15,15)))
         model.add(LeakyReLU(alpha=leakiness))
-        model.add(Convolution2D(8 * n, 3, 3, init='orthogonal', border_mode='same', W_regularizer=l2(0.0002)))
+        model.add(Convolution2D(8 * n, 3, 3, init='orthogonal', border_mode='same', W_regularizer=l2(0.0002), input_shape=(256,15,14)))
         model.add(LeakyReLU(alpha=leakiness))
-        model.add(Convolution2D(8 * n, 3, 3, init='orthogonal', border_mode='same', W_regularizer=l2(0.0002)))
+        model.add(Convolution2D(8 * n, 3, 3, init='orthogonal', border_mode='same', W_regularizer=l2(0.0002), input_shape=(256,15,15)))
         model.add(LeakyReLU(alpha=leakiness))
-        model.add(Convolution2D(8 * n, 3, 3, init='orthogonal', border_mode='same', W_regularizer=l2(0.0002)))
+        model.add(Convolution2D(8 * n, 3, 3, init='orthogonal', border_mode='same', W_regularizer=l2(0.0002), input_shape=(256,15,15)))
         model.add(LeakyReLU(alpha=leakiness))
-        model.add(MaxPooling2D(pool_size=(3, 3), strides=(2, 2)))
+        model.add(MaxPooling2D(pool_size=(3, 3), strides=(2, 2), input_shape=(256,15,15)))
         model.add(Dropout(0.5))
+        
         
         
     def FCBlock(self):
@@ -140,8 +146,9 @@ class Medium():
             Returns:   None
         """
         model = self.model2
-        model.add(Dense(1024, init='orthogonal', W_regularizer=l2(0.0002)))
-        model.add(MaxPooling2D(pool_size=(2,2), border_mode='same'))  #possible breaking point
+        model.add(MaxoutDense(512, nb_feature = 1, init='orthogonal', W_regularizer=l2(0.0002), input_shape=(512,)))
+        #model.add(Dense(1024, init='orthogonal', W_regularizer=l2(0.0002)))
+        #model.add(Lambda(Maxout))  #possible breaking point
 
 
 
@@ -152,21 +159,23 @@ class Medium():
             Args:   None
             Returns:   None
         """
-        l_in_imgdim = Input(shape=(batch_size,2))
+        #l_in_imgdim = Input(shape=(2))
         model1 = self.model1 = Sequential()
         model2 = self.model2 = Sequential()
         model = self.model = Sequential()
 
         #change shape
         #model1.add(l_in_imgdim)
-        model1.add(Lambda(nothing, input_shape = (batch_size, 2)))
-        model2.add(Lambda(vgg_preprocess, input_shape=(3,512,512), output_shape=(3,512,512)))
+        model1.add(Lambda(nothing, input_shape = (2,)))
+        model2.add(Lambda(vgg_preprocess, input_shape=(3,512,512)))
+        #output_shape=(5,)
+        
 
         self.ConvBlock()
         model2.add(Flatten())
         self.FCBlock()
         model.add(Merge([model1, model2], mode='concat', concat_axis = 1))
-        model.add(Reshape((batches // 2, -1)))  #possible breaking point
+        model.add(Reshape((64 // 2, -1)))  #possible breaking point
         model.add(Dropout(0.5))
         model.add(Dense(1024, init='orthogonal', W_regularizer=l2(0.0002)))
         model.add(MaxPooling1D(pool_length=2, border_mode='valid'))  #possible breaking point
