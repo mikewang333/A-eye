@@ -11,7 +11,7 @@ from keras.layers.normalization import BatchNormalization
 from keras.utils.data_utils import get_file
 from keras.models import Sequential
 from keras.layers.core import Flatten, Dense, Dropout, Lambda, MaxoutDense
-from keras.layers.convolutional import Convolution2D, MaxPooling2D, ZeroPadding2D
+from keras.layers.convolutional import Convolution2D, MaxPooling2D, MaxPooling1D, ZeroPadding2D
 from keras.layers.pooling import GlobalAveragePooling2D
 from keras.layers.advanced_activations import LeakyReLU
 from keras.layers import Input, Merge
@@ -33,6 +33,10 @@ def vgg_preprocess(x):
     #x = x / vgg_std
     #return x[:, ::-1] # reverse axis rgb->bgr
     return x
+
+def nothing(x):
+    return x
+
 
 n = 32
 momentum = 0.9
@@ -86,7 +90,7 @@ class Medium():
 
 
 
-    def ConvBlock(self,model):
+    def ConvBlock(self):
         #of filters = units on report    kernel_size = filter on report
         model = self.model2
         model.add(Convolution2D(n, 7, 7, subsample=(2,2), init='orthogonal', border_mode='same', W_regularizer=l2(0.0002)))
@@ -137,8 +141,7 @@ class Medium():
         """
         model = self.model2
         model.add(Dense(1024, init='orthogonal', W_regularizer=l2(0.0002)))
-        model.add(MaxPooling1D(pool_length=2, border_mode='same'))  #possible breaking point
-
+        model.add(MaxPooling2D(pool_size=(2,2), border_mode='same'))  #possible breaking point
 
 
 
@@ -155,7 +158,8 @@ class Medium():
         model = self.model = Sequential()
 
         #change shape
-        model1.add(l_in_imgdim)
+        #model1.add(l_in_imgdim)
+        model1.add(Lambda(nothing, input_shape = (batch_size, 2)))
         model2.add(Lambda(vgg_preprocess, input_shape=(3,512,512), output_shape=(3,512,512)))
 
         self.ConvBlock()
@@ -166,9 +170,9 @@ class Medium():
         model.add(Dropout(0.5))
         model.add(Dense(1024, init='orthogonal', W_regularizer=l2(0.0002)))
         model.add(MaxPooling1D(pool_length=2, border_mode='valid'))  #possible breaking point
-		model.add(Dropout(0.5))
-		model.add(Dense(10, init='orthogonal', W_regularizer=l2(0.0002))) #num_units=output_dim * 2 = 10
-		model.add(Reshape((batches, 5)))  #possible breaking point
+        model.add(Dropout(0.5))
+        model.add(Dense(10, init='orthogonal', W_regularizer=l2(0.0002))) #num_units=output_dim * 2 = 10
+        model.add(Reshape((batches, 5)))  #possible breaking point
         model.add(Dense(5, activation='softmax'))
 
 
