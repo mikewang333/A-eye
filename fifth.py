@@ -10,7 +10,7 @@ from keras import backend as K
 from keras.layers.normalization import BatchNormalization
 from keras.utils.data_utils import get_file
 from keras.models import Sequential
-from keras.layers.core import Flatten, Dense, Dropout, Lambda, MaxoutDense
+from keras.layers.core import Activation, Flatten, Dense, Dropout, Lambda, MaxoutDense
 from keras.layers.convolutional import Convolution2D, MaxPooling2D, MaxPooling1D, ZeroPadding2D
 from keras.layers.pooling import GlobalAveragePooling2D
 from keras.layers.advanced_activations import LeakyReLU
@@ -37,10 +37,12 @@ def vgg_preprocess(x):
 def nothing(x):
     return x
 
-def backend_reshape(x):
-    return K.reshape(x, (x[0] //2, 1028))
+#jeffery mentions that batch_size does not change, hence why reshaping them using constants should work (hope)
+def backend_reshape1(x):
+    return K.reshape(x, (32, 1028)) #refer to line 296-297 on jeffrey's, batch_size // 2 = 32
 
-
+def backend_reshape2(x):
+    return K.reshape(x, (64, 5)) #refer to line 319-320 on jeffrey's, batch_size = 64
 
 n = 32
 momentum = 0.9
@@ -171,17 +173,62 @@ class Medium():
         #output_shape=(5,)
         
 
-        self.ConvBlock()
+        model2.add(Convolution2D(n, 7, 7, subsample=(2,2), init='orthogonal', border_mode='same', W_regularizer=l2(0.0002), input_shape=(3,512,512)))
+        model2.add(LeakyReLU(alpha=leakiness))   # add an advanced activation  https://github.com/fchollet/keras/issues/117
+        model2.add(MaxPooling2D(pool_size=(3, 3), strides=(2, 2)))
+
+        model2.add(Convolution2D(n, 3, 3, init='orthogonal', border_mode='same', W_regularizer=l2(0.0002)))
+        model2.add(LeakyReLU(alpha=leakiness))
+        model2.add(Convolution2D(n, 3, 3, init='orthogonal', border_mode='same', W_regularizer=l2(0.0002)))
+        model2.add(LeakyReLU(alpha=leakiness))
+        model2.add(MaxPooling2D(pool_size=(3, 3), strides=(2, 2)))
+
+        model2.add(Convolution2D(2 * n, 3, 3, init='orthogonal', border_mode='same', W_regularizer=l2(0.0002)))
+        model2.add(LeakyReLU(alpha=leakiness))
+        model2.add(Convolution2D(2 * n, 3, 3, init='orthogonal', border_mode='same', W_regularizer=l2(0.0002)))
+        model2.add(LeakyReLU(alpha=leakiness))
+        model2.add(MaxPooling2D(pool_size=(3, 3), strides=(2, 2)))
+
+        model2.add(Convolution2D(4 * n, 3, 3, init='orthogonal', border_mode='same', W_regularizer=l2(0.0002)))
+        model2.add(LeakyReLU(alpha=leakiness))
+        model2.add(Convolution2D(4 * n, 3, 3, init='orthogonal', border_mode='same', W_regularizer=l2(0.0002)))
+        model2.add(LeakyReLU(alpha=leakiness))
+        model2.add(Convolution2D(4 * n, 3, 3, init='orthogonal', border_mode='same', W_regularizer=l2(0.0002)))
+        model2.add(LeakyReLU(alpha=leakiness))
+        model2.add(Convolution2D(4 * n, 3, 3, init='orthogonal', border_mode='same', W_regularizer=l2(0.0002)))
+        model2.add(LeakyReLU(alpha=leakiness))
+        model2.add(MaxPooling2D(pool_size=(3, 3), strides=(2, 2)))
+
+        model2.add(Convolution2D(8 * n, 3, 3, init='orthogonal', border_mode='same', W_regularizer=l2(0.0002)))
+        model2.add(LeakyReLU(alpha=leakiness))
+        model2.add(Convolution2D(8 * n, 3, 3, init='orthogonal', border_mode='same', W_regularizer=l2(0.0002)))
+        model2.add(LeakyReLU(alpha=leakiness))
+        model2.add(Convolution2D(8 * n, 3, 3, init='orthogonal', border_mode='same', W_regularizer=l2(0.0002)))
+        model2.add(LeakyReLU(alpha=leakiness))
+        model2.add(Convolution2D(8 * n, 3, 3, init='orthogonal', border_mode='same', W_regularizer=l2(0.0002)))
+        model2.add(LeakyReLU(alpha=leakiness))
+        model2.add(MaxPooling2D(pool_size=(3, 3), strides=(2, 2)))
+        model2.add(Dropout(0.5))
+        
         model2.add(Flatten())
-        self.FCBlock()
-        model.add(Merge([model1, model2], mode='concat', concat_axis = 1))
-        model.add(Reshape((64 // 2, -1)))  #possible breaking point
+        model2.add(MaxoutDense(512, nb_feature = 1, init='orthogonal', W_regularizer=l2(0.0002)))
+        
+        model.add(Merge([model1, model2], mode='concat', concat_axis=1))
+        
+        #model.add(Reshape((64 // 2, -1)))  #possible breaking point
+        model.add(Lambda(backend_reshape1))
+        
         model.add(Dropout(0.5))
         model.add(Dense(1024, init='orthogonal', W_regularizer=l2(0.0002)))
-        model.add(MaxPooling1D(pool_length=2, border_mode='valid'))  #possible breaking point
+        
+        model2.add(MaxoutDense(512, nb_feature = 1, init='orthogonal', W_regularizer=l2(0.0002)))
+        #model.add(MaxPooling1D(pool_length=2, border_mode='valid'))  #possible breaking point
+        
         model.add(Dropout(0.5))
         model.add(Dense(10, init='orthogonal', W_regularizer=l2(0.0002))) #num_units=output_dim * 2 = 10
-        model.add(Reshape((batches, 5)))  #possible breaking point
+        #model.add(Reshape((batches, 5)))  #possible breaking point
+        model.add(Lambda(backend_reshape2))
+        
         model.add(Activation('softmax'))
 
 
