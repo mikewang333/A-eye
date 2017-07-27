@@ -182,7 +182,7 @@ class Medium():
         model.add(Dropout(0.5))
         model.add(Dense(10, init='orthogonal', W_regularizer=l2(0.0002))) #num_units=output_dim * 2 = 10
         model.add(Reshape((batches, 5)))  #possible breaking point
-        model.add(Dense(5, activation='softmax'))
+        model.add(Activation('softmax'))
 
 
     def get_batches(self, path, gen=image.ImageDataGenerator(), shuffle=True, batch_size=64, class_mode='categorical'):
